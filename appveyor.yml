@@ -1,0 +1,41 @@
+version: "{build}"
+
+platform: x64
+
+clone_folder: c:\gopath\src\github.com\szxp\mux
+
+branches:
+  only:
+    - master
+
+skip_tags: true
+
+environment:
+   GOPATH: C:\gopath
+   GOVERSION: 1.7
+   MINGW_DIR: C:\mingw64
+   MINGW_ARCHIVE: x86_64-6.1.0-release-win32-seh-rt_v5-rev1.7z
+
+install:
+  - curl -fsSL -j -b cookies.txt -c cookies.txt -o "%MINGW_ARCHIVE%" "https://sourceforge.net/projects/mingw-w64/files/Toolchains targetting Win64/Personal Builds/mingw-builds/6.1.0/threads-win32/seh/x86_64-6.1.0-release-win32-seh-rt_v5-rev1.7z/download"
+  - 7z x "%MINGW_ARCHIVE%" -y -oC:\ > NUL
+  - rmdir C:\go /s /q
+  - curl -fsSL -j -b cookies.txt -c cookies.txt -o "go%GOVERSION%.windows-amd64.zip" "https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.zip"
+  - 7z x "go%GOVERSION%.windows-amd64.zip" -y -oC:\ > NUL
+
+before_build:
+  - set PATH=%MINGW_DIR%\bin;%PATH%
+  - g++ --version
+  - mingw32-make --version
+  - cmake --version
+  - set PATH=%GOPATH%\bin;c:\go\bin;%PATH%
+  - go version
+  - go env
+  - go get -v -t ./... 
+
+build_script:
+  - go test -v ./...
+
+test: off
+
+deploy: off
