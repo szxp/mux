@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/szxp/mux.svg?branch=master)](https://travis-ci.org/szxp/mux)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/szxp/mux?branch=master&svg=true)](https://ci.appveyor.com/project/szxp/mux)
+
+
 # mux
 A lightweight HTTP request router (multiplexer).
 
