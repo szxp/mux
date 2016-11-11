@@ -100,7 +100,7 @@ func (pr *paramsRecorder) assertEquals(t *testing.T) {
 			pr.expected, pr.actual, line)
 	}
 
-	for key, _ := range pr.expected {
+	for key := range pr.expected {
 		if pr.expected[key] != pr.actual[key] {
 			_, _, line, _ := runtime.Caller(1)
 			t.Fatalf("expected params: %v, but got: %v (line: %d)",
@@ -114,7 +114,7 @@ func register(m *Muxer, pattern string, body string, cr *paramsRecorder) {
 		fmt.Fprint(w, body)
 
 		if cr != nil {
-			for key, _ := range cr.expected {
+			for key := range cr.expected {
 				v := r.Context().Value(key)
 				cr.actual[key] = v.(string)
 			}
