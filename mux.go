@@ -246,14 +246,7 @@ func (m *Muxer) match(_ string, path string) (http.Handler, params) {
 	segments := strings.Split(strings.Trim(path, "/"), "/")
 	slen := len(segments)
 
-	routes := make([]*route, 0, len(m.routes))
-	for _, r := range m.routes {
-		if r.len == slen && ((endsInSlash && r.slashHandler != nil) || (!endsInSlash && r.nonSlashHandler != nil)) {
-			routes = append(routes, r)
-		} else if r.len < slen && r.slashHandler != nil {
-			routes = append(routes, r)
-		}
-	}
+	routes := m.possibleRoutes(slen, endsInSlash)
 
 	var candidates []*route
 LOOP:
@@ -282,4 +275,16 @@ LOOP:
 	}
 
 	return nil, nil
+}
+
+func (m *Muxer) possibleRoutes(slen int, endsInSlash bool) []*route {
+	routes := make([]*route, 0, len(m.routes))
+	for _, r := range m.routes {
+		if r.len == slen && ((endsInSlash && r.slashHandler != nil) || (!endsInSlash && r.nonSlashHandler != nil)) {
+			routes = append(routes, r)
+		} else if r.len < slen && r.slashHandler != nil {
+			routes = append(routes, r)
+		}
+	}
+	return routes
 }
