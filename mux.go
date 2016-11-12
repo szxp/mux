@@ -34,6 +34,9 @@ type route struct {
 	// the length of segments slice
 	len int
 
+	// supported methods
+	methods []string
+
 	// paramateres names: segment index -> name
 	params map[int]string
 
@@ -42,6 +45,21 @@ type route struct {
 
 	// the handler for a pattern that NOT ends in a slash
 	nonSlashHandler http.Handler
+}
+
+// methodSupported checks whether the given method
+// is supported by this route.
+func (p *route) methodSupported(method string) bool {
+	if len(p.methods) == 0 {
+		return true
+	}
+
+	for _, m := range p.methods {
+		if m == method {
+			return true
+		}
+	}
+	return false
 }
 
 // notMatch checks whether the segment at index i
@@ -125,20 +143,15 @@ func (m *Muxer) Handle(pattern string, handler http.Handler) {
 		panic("invalid pattern " + pattern)
 	}
 
-	//host := ""
-	//if pattern[0] != '/' {
-	//	// the domain part of the url is case insensitive
-	//	host = strings.ToLower(strings.Split(pattern, "/")[0])
-	//}
+	methods, _, path := split(pattern)
+	endsInSlash := path[len(path)-1] == '/'
+	path = strings.Trim(path, "/")
 
-	endsInSlash := pattern[len(pattern)-1] == '/'
-	pattern = strings.Trim(pattern, "/")
-
-	r := m.registered[pattern]
+	r := m.registered[path]
 	if r == nil {
 		r = &route{}
-		if pattern != "" {
-			r.segments = strings.Split(pattern, "/")
+		if path != "" {
+			r.segments = strings.Split(path, "/")
 			r.len = len(r.segments)
 
 			for i, s := range r.segments {
@@ -150,9 +163,10 @@ func (m *Muxer) Handle(pattern string, handler http.Handler) {
 				}
 			}
 		}
-		m.registered[pattern] = r
+		m.registered[path] = r
 	}
 
+	r.methods = methods
 	if endsInSlash {
 		r.slashHandler = handler
 	} else {
@@ -161,6 +175,28 @@ func (m *Muxer) Handle(pattern string, handler http.Handler) {
 
 	m.routes = append(m.routes, r)
 	sort.Sort(byPriority(m.routes))
+}
+
+// split splits the pattern, separating it into methods, host and path.
+func split(pattern string) (methods []string, host, path string) {
+	pStart := strings.Index(pattern, "/")
+	if pStart == -1 {
+		panic("path must begin with slash")
+	}
+
+	path = pattern[pStart:]
+	if pStart == 0 {
+		return
+	}
+
+	prefix := pattern[:pStart]
+	mEnd := strings.Index(prefix, " ")
+	if mEnd > -1 {
+		methods = strings.Split(prefix[:mEnd], ",")
+	}
+	// the domain part of the url is case insensitive
+	host = strings.ToLower(prefix[mEnd+1:])
+	return
 }
 
 // HandleFunc registers the handler function for the given pattern.
@@ -196,7 +232,7 @@ func (m *Muxer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h, params := m.handler(r.Host, r.URL.Path)
+	h, params := m.handler(r.Method, r.Host, r.URL.Path)
 
 	if len(params) > 0 {
 		ctx := r.Context()
@@ -228,12 +264,12 @@ func cleanPath(p string) string {
 
 // handler is the main implementation of Handler.
 // The path is known to be in canonical form, except for CONNECT methods.
-func (m *Muxer) handler(host, path string) (h http.Handler, params params) {
+func (m *Muxer) handler(method, host, path string) (h http.Handler, params params) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	if h == nil {
-		h, params = m.match(host, path)
+		h, params = m.match(method, host, path)
 	}
 	if h == nil {
 		h, params = http.NotFoundHandler(), nil
@@ -241,12 +277,12 @@ func (m *Muxer) handler(host, path string) (h http.Handler, params params) {
 	return
 }
 
-func (m *Muxer) match(_ string, path string) (http.Handler, params) {
+func (m *Muxer) match(method, _, path string) (http.Handler, params) {
 	endsInSlash := path[len(path)-1] == '/'
 	segments := strings.Split(strings.Trim(path, "/"), "/")
 	slen := len(segments)
 
-	routes := m.possibleRoutes(slen, endsInSlash)
+	routes := m.possibleRoutes(method, slen, endsInSlash)
 
 	var candidates []*route
 LOOP:
@@ -277,9 +313,13 @@ LOOP:
 	return nil, nil
 }
 
-func (m *Muxer) possibleRoutes(slen int, endsInSlash bool) []*route {
+func (m *Muxer) possibleRoutes(method string, slen int, endsInSlash bool) []*route {
 	routes := make([]*route, 0, len(m.routes))
 	for _, r := range m.routes {
+		if !r.methodSupported(method) {
+			continue
+		}
+
 		if r.len == slen && ((endsInSlash && r.slashHandler != nil) || (!endsInSlash && r.nonSlashHandler != nil)) {
 			routes = append(routes, r)
 		} else if r.len < slen && r.slashHandler != nil {

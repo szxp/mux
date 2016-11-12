@@ -11,52 +11,52 @@ import (
 func TestEmpty(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
-	assertNotFound(t, m, "/")
-	assertNotFound(t, m, "/blog")
-	assertNotFound(t, m, "/blog/")
-	assertNotFound(t, m, "/blog/2016")
-	assertNotFound(t, m, "/blog/2016/")
+	assertNotFound(t, m, "GET", "/")
+	assertNotFound(t, m, "GET", "/blog")
+	assertNotFound(t, m, "GET", "/blog/")
+	assertNotFound(t, m, "GET", "/blog/2016")
+	assertNotFound(t, m, "GET", "/blog/2016/")
 }
 
 func TestCatchAll(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
 	register(m, "/", "Catch all", nil)
-	assertOK(t, m, "/", "Catch all")
-	assertOK(t, m, "/not-registered", "Catch all")
-	assertOK(t, m, "/a/b", "Catch all")
+	assertOK(t, m, "GET", "/", "Catch all")
+	assertOK(t, m, "GET", "/not-registered", "Catch all")
+	assertOK(t, m, "GET", "/a/b", "Catch all")
 }
 
 func TestWithoutSlash(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
 	register(m, "/help", "Help without slash", nil)
-	assertOK(t, m, "/help", "Help without slash")
-	assertNotFound(t, m, "/helpMe")
-	assertNotFound(t, m, "/he")
-	assertNotFound(t, m, "/help/")
+	assertOK(t, m, "GET", "/help", "Help without slash")
+	assertNotFound(t, m, "GET", "/helpMe")
+	assertNotFound(t, m, "GET", "/he")
+	assertNotFound(t, m, "GET", "/help/")
 }
 
 func TestWithSlash(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
 	register(m, "/login/", "Login with slash", nil)
-	assertOK(t, m, "/login/", "Login with slash")
-	assertNotFound(t, m, "/log")
+	assertOK(t, m, "GET", "/login/", "Login with slash")
+	assertNotFound(t, m, "GET", "/log")
 }
 
 func TestLongPattern(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
 	register(m, "/category/first", "First category", nil)
-	assertNotFound(t, m, "/cat")
-	assertNotFound(t, m, "/category")
-	assertNotFound(t, m, "/category/")
-	assertOK(t, m, "/category/first", "First category")
-	assertNotFound(t, m, "/category/first/")
-	assertNotFound(t, m, "/category/second/third")
-	assertNotFound(t, m, "/category/second/third/")
-	assertNotFound(t, m, "/category/second/third/2016")
+	assertNotFound(t, m, "GET", "/cat")
+	assertNotFound(t, m, "GET", "/category")
+	assertNotFound(t, m, "GET", "/category/")
+	assertOK(t, m, "GET", "/category/first", "First category")
+	assertNotFound(t, m, "GET", "/category/first/")
+	assertNotFound(t, m, "GET", "/category/second/third")
+	assertNotFound(t, m, "GET", "/category/second/third/")
+	assertNotFound(t, m, "GET", "/category/second/third/2016")
 }
 
 func TestShorterCatchAll(t *testing.T) {
@@ -64,12 +64,12 @@ func TestShorterCatchAll(t *testing.T) {
 	m := NewMuxer()
 	register(m, "/users/", "Users", nil)
 	register(m, "/users/admin", "Admin", nil)
-	assertOK(t, m, "/users/", "Users")
-	assertOK(t, m, "/users/admin", "Admin")
-	assertOK(t, m, "/users/administrator", "Users")
-	assertOK(t, m, "/users/admin/", "Users")
-	assertOK(t, m, "/users/admin/details", "Users")
-	assertOK(t, m, "/users/admin/details/", "Users")
+	assertOK(t, m, "GET", "/users/", "Users")
+	assertOK(t, m, "GET", "/users/admin", "Admin")
+	assertOK(t, m, "GET", "/users/administrator", "Users")
+	assertOK(t, m, "GET", "/users/admin/", "Users")
+	assertOK(t, m, "GET", "/users/admin/details", "Users")
+	assertOK(t, m, "GET", "/users/admin/details/", "Users")
 }
 
 func TestDynamicPattern(t *testing.T) {
@@ -79,7 +79,7 @@ func TestDynamicPattern(t *testing.T) {
 	register(m, "/", "Home", nil)
 	register(m, "/new", "New Deck", nil)
 	register(m, "/:deckId/study/:cardId", "Deck", pr)
-	assertOK(t, m, "/123/study/99", "Deck")
+	assertOK(t, m, "GET", "/123/study/99", "Deck")
 	pr.assertEquals(t)
 }
 
@@ -88,7 +88,7 @@ func TestRegisterPatternTwice(t *testing.T) {
 	m := NewMuxer()
 	register(m, "/new", "Home1", nil)
 	register(m, "/new", "Home2", nil)
-	assertOK(t, m, "/new", "Home2")
+	assertOK(t, m, "GET", "/new", "Home2")
 }
 
 func TestRemoveHandler(t *testing.T) {
@@ -97,7 +97,69 @@ func TestRemoveHandler(t *testing.T) {
 	register(m, "/", "Home", nil)
 	register(m, "/new", "New Deck", nil)
 	m.Handle("/new", nil)
-	assertOK(t, m, "/new", "Home")
+	assertOK(t, m, "GET", "/new", "Home")
+}
+
+func TestMethods(t *testing.T) {
+	t.Parallel()
+	m := NewMuxer()
+	register(m, "GET,POST /bicycle", "Bicycle", nil)
+	register(m, "PUT,PATCH /car", "Car", nil)
+	assertOK(t, m, "GET", "/bicycle", "Bicycle")
+	assertOK(t, m, "POST", "/bicycle", "Bicycle")
+	assertOK(t, m, "PUT", "/car", "Car")
+	assertOK(t, m, "PATCH", "/car", "Car")
+	assertNotFound(t, m, "PUT", "/bicycle")
+	assertNotFound(t, m, "PATCH", "/bicycle")
+	assertNotFound(t, m, "GET", "/car")
+	assertNotFound(t, m, "POST", "/car")
+	assertNotFound(t, m, "DELETE", "/bicycle")
+	assertNotFound(t, m, "DELETE", "/car")
+}
+
+func register(m *Muxer, pattern string, body string, cr *paramsRecorder) {
+	m.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, body)
+
+		if cr != nil {
+			for key := range cr.expected {
+				v := r.Context().Value(key)
+				cr.actual[key] = v.(string)
+			}
+		}
+	})
+}
+
+func assertNotFound(t *testing.T, m *Muxer, method, path string) {
+	rec := serve(t, m, method, path)
+
+	if rec.Code != http.StatusNotFound {
+		_, _, line, _ := runtime.Caller(1)
+		t.Fatalf("expected code %d, but got: %d (line %d)",
+			http.StatusNotFound, rec.Code, line)
+	}
+}
+
+func assertOK(t *testing.T, m *Muxer, method, path, body string) {
+	rec := serve(t, m, method, path)
+
+	if rec.Code != http.StatusOK {
+		_, _, line, _ := runtime.Caller(1)
+		t.Fatalf("expected code %d, but got: %d (line %d)",
+			http.StatusOK, rec.Code, line)
+	}
+
+	if rec.Body.String() != body {
+		_, _, line, _ := runtime.Caller(1)
+		t.Fatalf("expected body '%s', but got: '%s' (line %d)",
+			body, rec.Body.String(), line)
+	}
+}
+
+func serve(t *testing.T, m *Muxer, method, path string) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	m.ServeHTTP(w, httptest.NewRequest(method, path, nil))
+	return w
 }
 
 type paramsRecorder struct {
@@ -123,49 +185,4 @@ func (pr *paramsRecorder) assertEquals(t *testing.T) {
 				pr.expected, pr.actual, line)
 		}
 	}
-}
-
-func register(m *Muxer, pattern string, body string, cr *paramsRecorder) {
-	m.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, body)
-
-		if cr != nil {
-			for key := range cr.expected {
-				v := r.Context().Value(key)
-				cr.actual[key] = v.(string)
-			}
-		}
-	})
-}
-
-func assertNotFound(t *testing.T, m *Muxer, path string) {
-	rec := serve(t, m, path)
-
-	if rec.Code != http.StatusNotFound {
-		_, _, line, _ := runtime.Caller(1)
-		t.Fatalf("expected code %d, but got: %d (line %d)",
-			http.StatusNotFound, rec.Code, line)
-	}
-}
-
-func assertOK(t *testing.T, m *Muxer, path string, body string) {
-	rec := serve(t, m, path)
-
-	if rec.Code != http.StatusOK {
-		_, _, line, _ := runtime.Caller(1)
-		t.Fatalf("expected code %d, but got: %d (line %d)",
-			http.StatusOK, rec.Code, line)
-	}
-
-	if rec.Body.String() != body {
-		_, _, line, _ := runtime.Caller(1)
-		t.Fatalf("expected body '%s', but got: '%s' (line %d)",
-			body, rec.Body.String(), line)
-	}
-}
-
-func serve(t *testing.T, m *Muxer, path string) *httptest.ResponseRecorder {
-	w := httptest.NewRecorder()
-	m.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
-	return w
 }
