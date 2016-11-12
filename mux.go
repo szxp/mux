@@ -123,13 +123,13 @@ func (a byPriority) Less(i, j int) bool { return a[i].priority() > a[j].priority
 //
 // Static and dynamic patterns are supported.
 // Static pattern examples:
-//   /new
-//   /
+//   PUT,PATCH /product
+//   GET /
 //   /products/
 //
 // Dynamic patterns can contain paramterer names after the colon character.
 // Dynamic pattern examples:
-//   /blog/:year/:month
+//   GET,POST /blog/:year/:month
 //   /users/:username/profile
 //
 // Parameter values for a dynamic pattern will be available
