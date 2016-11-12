@@ -8,38 +8,46 @@ import (
 	"testing"
 )
 
-func TestServe(t *testing.T) {
-	// empty
+func TestEmpty(t *testing.T) {
+	t.Parallel()
 	m := NewMuxer()
 	assertNotFound(t, m, "/")
 	assertNotFound(t, m, "/blog")
 	assertNotFound(t, m, "/blog/")
 	assertNotFound(t, m, "/blog/2016")
 	assertNotFound(t, m, "/blog/2016/")
+}
 
-	// catch all
-	m = NewMuxer()
+func TestCatchAll(t *testing.T) {
+	t.Parallel()
+	m := NewMuxer()
 	register(m, "/", "Catch all", nil)
 	assertOK(t, m, "/", "Catch all")
 	assertOK(t, m, "/not-registered", "Catch all")
 	assertOK(t, m, "/a/b", "Catch all")
+}
 
-	// without slash
-	m = NewMuxer()
+func TestWithoutSlash(t *testing.T) {
+	t.Parallel()
+	m := NewMuxer()
 	register(m, "/help", "Help without slash", nil)
 	assertOK(t, m, "/help", "Help without slash")
 	assertNotFound(t, m, "/helpMe")
 	assertNotFound(t, m, "/he")
 	assertNotFound(t, m, "/help/")
+}
 
-	// with slash
-	m = NewMuxer()
+func TestWithSlash(t *testing.T) {
+	t.Parallel()
+	m := NewMuxer()
 	register(m, "/login/", "Login with slash", nil)
 	assertOK(t, m, "/login/", "Login with slash")
 	assertNotFound(t, m, "/log")
+}
 
-	// longer than single segment pattern
-	m = NewMuxer()
+func TestLongPattern(t *testing.T) {
+	t.Parallel()
+	m := NewMuxer()
 	register(m, "/category/first", "First category", nil)
 	assertNotFound(t, m, "/cat")
 	assertNotFound(t, m, "/category")
@@ -49,9 +57,11 @@ func TestServe(t *testing.T) {
 	assertNotFound(t, m, "/category/second/third")
 	assertNotFound(t, m, "/category/second/third/")
 	assertNotFound(t, m, "/category/second/third/2016")
+}
 
-	// shorter catch all pattern
-	m = NewMuxer()
+func TestShorterCatchAll(t *testing.T) {
+	t.Parallel()
+	m := NewMuxer()
 	register(m, "/users/", "Users", nil)
 	register(m, "/users/admin", "Admin", nil)
 	assertOK(t, m, "/users/", "Users")
@@ -60,24 +70,30 @@ func TestServe(t *testing.T) {
 	assertOK(t, m, "/users/admin/", "Users")
 	assertOK(t, m, "/users/admin/details", "Users")
 	assertOK(t, m, "/users/admin/details/", "Users")
+}
 
-	// dynamic pattern
-	m = NewMuxer()
+func TestDynamicPattern(t *testing.T) {
+	t.Parallel()
+	m := NewMuxer()
 	pr := newParamsRecorder(params{"deckId": "123", "cardId": "99"})
 	register(m, "/", "Home", nil)
 	register(m, "/new", "New Deck", nil)
 	register(m, "/:deckId/study/:cardId", "Deck", pr)
 	assertOK(t, m, "/123/study/99", "Deck")
 	pr.assertEquals(t)
+}
 
-	// register a pattern twice
-	m = NewMuxer()
+func TestRegisterPatternTwice(t *testing.T) {
+	t.Parallel()
+	m := NewMuxer()
 	register(m, "/new", "Home1", nil)
 	register(m, "/new", "Home2", nil)
 	assertOK(t, m, "/new", "Home2")
+}
 
-	// remove a handler
-	m = NewMuxer()
+func TestRemoveHandler(t *testing.T) {
+	t.Parallel()
+	m := NewMuxer()
 	register(m, "/", "Home", nil)
 	register(m, "/new", "New Deck", nil)
 	m.Handle("/new", nil)
