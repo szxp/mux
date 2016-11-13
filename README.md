@@ -24,13 +24,18 @@ import (
 
 func main() {
 	muxer := mux.NewMuxer()
-	muxer.HandleFunc("/login", loginHandler)
+	muxer.HandleFunc("GET /", indexHandler)
+	muxer.HandleFunc("GET,POST /login", loginHandler)
 	muxer.HandleFunc("/users/:username", userHandler)
 	http.ListenAndServe(":8080", muxer)
 }
 
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Home")
+}
+
 func loginHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Login")
+	fmt.Fprintf(w, "%s %s", r.Method, "Login")
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
