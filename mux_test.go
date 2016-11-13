@@ -103,8 +103,13 @@ func TestRemoveHandler(t *testing.T) {
 func TestMethods(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
+	register(m, "GET /gift", "Receiving a gift", nil)
+	register(m, "POST /gift", "Giving a gift", nil)
 	register(m, "GET,POST /bicycle", "Bicycle", nil)
 	register(m, "PUT,PATCH /car", "Car", nil)
+
+	assertOK(t, m, "GET", "/gift", "Receiving a gift")
+	assertOK(t, m, "POST", "/gift", "Giving a gift")
 	assertOK(t, m, "GET", "/bicycle", "Bicycle")
 	assertOK(t, m, "POST", "/bicycle", "Bicycle")
 	assertOK(t, m, "PUT", "/car", "Car")

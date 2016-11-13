@@ -34,8 +34,8 @@ type route struct {
 	// the length of segments slice
 	len int
 
-	// supported methods
-	methods []string
+	// supported method
+	method string
 
 	// paramateres names: segment index -> name
 	params map[int]string
@@ -50,16 +50,7 @@ type route struct {
 // methodSupported checks whether the given method
 // is supported by this route.
 func (p *route) methodSupported(method string) bool {
-	if len(p.methods) == 0 {
-		return true
-	}
-
-	for _, m := range p.methods {
-		if m == method {
-			return true
-		}
-	}
-	return false
+	return p.method == "" || p.method == method
 }
 
 // notMatch checks whether the segment at index i
@@ -143,38 +134,44 @@ func (m *Muxer) Handle(pattern string, handler http.Handler) {
 		panic("invalid pattern " + pattern)
 	}
 
-	methods, _, path := split(pattern)
+	methods, host, path := split(pattern)
 	endsInSlash := path[len(path)-1] == '/'
 	path = strings.Trim(path, "/")
 
-	r := m.registered[path]
-	if r == nil {
-		r = &route{}
-		if path != "" {
-			r.segments = strings.Split(path, "/")
-			r.len = len(r.segments)
+	for _, method := range methods {
+		key := method + host + path
+		r := m.registered[key]
+		if r == nil {
+			r = newRoute(method, path)
+			m.routes = append(m.routes, r)
+			m.registered[key] = r
+		}
 
-			for i, s := range r.segments {
-				if s[0] == ':' { // dynamic segment
-					if r.params == nil {
-						r.params = make(map[int]string)
-					}
-					r.params[i] = s[1:]
+		if endsInSlash {
+			r.slashHandler = handler
+		} else {
+			r.nonSlashHandler = handler
+		}
+	}
+	sort.Sort(byPriority(m.routes))
+}
+
+func newRoute(method, path string) *route {
+	r := &route{method: method}
+	if path != "" {
+		r.segments = strings.Split(path, "/")
+		r.len = len(r.segments)
+
+		for i, s := range r.segments {
+			if s[0] == ':' { // dynamic segment
+				if r.params == nil {
+					r.params = make(map[int]string)
 				}
+				r.params[i] = s[1:]
 			}
 		}
-		m.registered[path] = r
 	}
-
-	r.methods = methods
-	if endsInSlash {
-		r.slashHandler = handler
-	} else {
-		r.nonSlashHandler = handler
-	}
-
-	m.routes = append(m.routes, r)
-	sort.Sort(byPriority(m.routes))
+	return r
 }
 
 // split splits the pattern, separating it into methods, host and path.
@@ -185,15 +182,15 @@ func split(pattern string) (methods []string, host, path string) {
 	}
 
 	path = pattern[pStart:]
-	if pStart == 0 {
-		return
-	}
-
 	prefix := pattern[:pStart]
 	mEnd := strings.Index(prefix, " ")
 	if mEnd > -1 {
 		methods = strings.Split(prefix[:mEnd], ",")
 	}
+	if len(methods) == 0 {
+		methods = []string{""}
+	}
+
 	// the domain part of the url is case insensitive
 	host = strings.ToLower(prefix[mEnd+1:])
 	return
