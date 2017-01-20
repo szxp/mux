@@ -25,8 +25,8 @@ import (
 
 func main() {
 	muxer := mux.NewMuxer()
-	muxer.HandleFunc("GET /", indexHandler)
-	muxer.HandleFunc("GET,POST /login", loginHandler)
+	muxer.HandleFunc("/", indexHandler, "GET")
+	muxer.HandleFunc("/login", loginHandler, "GET", "POST")
 	muxer.HandleFunc("/users/:username", userHandler)
 	http.ListenAndServe(":8080", muxer)
 }
