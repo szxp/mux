@@ -127,6 +127,19 @@ func (a byPriority) Less(i, j int) bool { return a[i].priority() > a[j].priority
 // in the request's context (http.Request.Context()) associated with
 // the parameter name. Use the context's Value() method to retrieve a value:
 //   value := req.Context().Value(mux.CtxKey("username")))
+//
+// The muxer will choose the most specific pattern that matches the request.
+// A pattern with longer static prefix is more specific
+// than a pattern with a shorter static prefix.
+//   /a      vs /:b       => /a       wins
+//   /:x     vs /:x/p     => /:x/p    wins
+//   /a/:b/c vs /:d/e/:f  => /a/:b/c  wins
+//
+// The slash pattern (/) acts as a catch all pattern.
+//
+// If HTTP methods are given then only requests with those methods
+// will be dispatched to the handler whose pattern matches the request path. For example:
+//   muxer.HandleFunc("/login", loginHandler, "GET", "POST"o)
 func (m *Muxer) Handle(pattern string, handler http.Handler, methods ...string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
