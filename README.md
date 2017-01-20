@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/szxp/mux.svg?branch=master)](https://travis-ci.org/szxp/mux)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/szxp/mux?branch=master&svg=true)](https://ci.appveyor.com/project/szxp/mux)
+[![GoDoc](https://godoc.org/github.com/szxp/mux?status.svg)](https://godoc.org/github.com/szxp/mux)
 [![Go Report Card](https://goreportcard.com/badge/github.com/szxp/mux)](https://goreportcard.com/report/github.com/szxp/mux)
 
 # mux
