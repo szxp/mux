@@ -40,6 +40,6 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, r.Context().Value("username"))
+	fmt.Fprint(w, r.Context().Value(mux.CtxKey("username")))
 }
 ```

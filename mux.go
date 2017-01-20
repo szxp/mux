@@ -125,7 +125,8 @@ func (a byPriority) Less(i, j int) bool { return a[i].priority() > a[j].priority
 //
 // Parameter values for a dynamic pattern will be available
 // in the request's context (http.Request.Context()) associated with
-// the parameter name. Use the request context's Value() method to retrieve the values.
+// the parameter name. Use the context's Value() method to retrieve a value:
+//   value := req.Context().Value(mux.CtxKey("username")))
 func (m *Muxer) Handle(pattern string, handler http.Handler, methods ...string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -229,7 +230,7 @@ func (m *Muxer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(params) > 0 {
 		ctx := r.Context()
 		for key, value := range params {
-			ctx = context.WithValue(ctx, key, value)
+			ctx = context.WithValue(ctx, CtxKey(key), value)
 		}
 		r = r.WithContext(ctx)
 	}
@@ -320,3 +321,10 @@ func (m *Muxer) possibleRoutes(method string, slen int, endsInSlash bool) []*rou
 	}
 	return routes
 }
+
+// CtxKey is the type of the context keys at which named parameter
+// values are stored.
+//
+// Use the request context's Value() method to retrieve a value:
+//   value := req.Context().Value(mux.CtxKey("username")))
+type CtxKey string

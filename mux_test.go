@@ -128,7 +128,7 @@ func register(m *Muxer, pattern string, methods []string, body string, cr *param
 
 		if cr != nil {
 			for key := range cr.expected {
-				v := r.Context().Value(key)
+				v := r.Context().Value(CtxKey(key))
 				cr.actual[key] = v.(string)
 			}
 		}
