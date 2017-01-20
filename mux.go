@@ -139,7 +139,7 @@ func (a byPriority) Less(i, j int) bool { return a[i].priority() > a[j].priority
 //
 // If HTTP methods are given then only requests with those methods
 // will be dispatched to the handler whose pattern matches the request path. For example:
-//   muxer.HandleFunc("/login", loginHandler, "GET", "POST"o)
+//   muxer.HandleFunc("/login", loginHandler, "GET", "POST")
 func (m *Muxer) Handle(pattern string, handler http.Handler, methods ...string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
