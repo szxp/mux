@@ -4,29 +4,53 @@
 //   package main
 //
 //   import (
-//       "fmt"
-//       "github.com/szxp/mux"
-//       "net/http"
+//     "fmt"
+//     "github.com/szxp/mux"
+//     "net/http"
 //   )
 //
 //   func main() {
-//       muxer := mux.NewMuxer()
-//       muxer.HandleFunc("/", indexHandler, "GET")
-//       muxer.HandleFunc("/login", loginHandler, "GET", "POST")
-//       muxer.HandleFunc("/users/:username", userHandler)
-//       http.ListenAndServe(":8080", muxer)
+//     muxer := mux.NewMuxer()
+//     muxer.HandleFunc("/", indexHandler, "GET")
+//     muxer.HandleFunc("/login", loginHandler, "POST")
+//     muxer.HandleFunc("/users/:username", userHandler)
+//     muxer.NotFound(notFoundHandler)
+//     http.ListenAndServe(":8080", muxer)
 //   }
 //
 //   func indexHandler(w http.ResponseWriter, r *http.Request) {
-//       fmt.Fprint(w, "Home")
+//     body := []byte(`
+//       <h1>Home</h1>
+//       <p>
+//         <a href="/users/admin">Admin profile page</a> <br/>
+//         <a href="/login">Login page</a>
+//       </p>
+//       <form action="/" method="POST">
+//         <button type="submit">Post to Home URL</button>
+//       </form>
+//       <form action="/nonexisting" method="POST">
+//         <button type="submit">Post to non existing URL</button>
+//       </form>
+//     `)
+//     w.Header().Add("Content-Type", "text/html; charset=utf-8")
+//     w.Header().Add("Content-Length", fmt.Sprintf("%d", len(body)))
+//     w.Write(body)
 //   }
 //
 //   func loginHandler(w http.ResponseWriter, r *http.Request) {
-//       fmt.Fprintf(w, "%s %s", r.Method, "Login")
+//     fmt.Fprint(w, "Login")
 //   }
 //
 //   func userHandler(w http.ResponseWriter, r *http.Request) {
-//       fmt.Fprint(w, r.Context().Value(mux.CtxKey("username")))
+//     fmt.Fprint(w, r.Context().Value(mux.CtxKey("username")))
+//   }
+//
+//   func notFoundHandler(w http.ResponseWriter, r *http.Request, methodMismatch bool) {
+//     if methodMismatch {
+//       http.Error(w, r.Method+" not allowed", http.StatusMethodNotAllowed)
+//       return
+//     }
+//     http.Error(w, "not found", http.StatusNotFound)
 //   }
 package mux
 
@@ -41,9 +65,10 @@ import (
 
 // Muxer represents an HTTP request multiplexer.
 type Muxer struct {
-	mu         sync.RWMutex
-	registered map[string]*route
-	routes     []*route
+	mu              sync.RWMutex
+	registered      map[string]*route
+	routes          []*route
+	notFoundHandler func(w http.ResponseWriter, r *http.Request, methodMismatch bool)
 }
 
 // NewMuxer returns a new Muxer.
@@ -85,20 +110,20 @@ func (p *route) methodSupported(method string) bool {
 // notMatch checks whether the segment at index i
 // does not match the pathSeg path segment.
 func (p *route) notMatch(pathSeg string, i int) bool {
-	if p.len == 0 || p.len-1 < i {
+	if /*p.len == 0 || */ p.len-1 < i {
 		return false
 	}
 
 	s := p.segments[i]
-	return (s[0] != ':') && (s != pathSeg)
+	return (len(s) == 0 || s[0] != ':') && (s != pathSeg)
 }
 
-// params is a map for request parameter values.
-type params map[string]string
+// args is a map for request parameter values.
+type args map[string]string
 
-// paramsMap returns a map containing request parameter values.
-func (p *route) paramsMap(pathSegs []string) params {
-	m := params{}
+// argsMap returns a map containing request parameter values.
+func (p *route) argsMap(pathSegs []string) args {
+	m := args{}
 	slen := len(pathSegs)
 	for i, name := range p.params {
 		if i < slen {
@@ -115,20 +140,20 @@ func (p *route) paramsMap(pathSegs []string) params {
 // 1 = dynamic segment
 //
 // The route priority is created by concatenating the priorities of the segments.
-// The default (catch all) route has the priority 0.
+// The slash (/) route has the priority 0.
 func (p *route) priority() string {
-	if p.len == 0 {
+	if p.segments[0] == "" { // slash pattern
 		return "0"
 	}
-	pri := ""
+	pri := make([]byte, 0, 3)
 	for _, s := range p.segments {
 		if s[0] == ':' {
-			pri += "1"
+			pri = append(pri, '1')
 		} else {
-			pri += "2"
+			pri = append(pri, '2')
 		}
 	}
-	return pri
+	return string(pri)
 }
 
 // byPriority implements sort.Interface for []*route based on
@@ -164,7 +189,7 @@ func (a byPriority) Less(i, j int) bool { return a[i].priority() > a[j].priority
 //   /:x     vs /:x/p     => /:x/p    wins
 //   /a/:b/c vs /:d/e/:f  => /a/:b/c  wins
 //
-// The slash pattern (/) acts as a catch all pattern.
+// The slash pattern (/) does NOT act as a catch all pattern.
 //
 // If HTTP methods are given then only requests with those methods
 // will be dispatched to the handler whose pattern matches the request path. For example:
@@ -204,17 +229,15 @@ func (m *Muxer) Handle(pattern string, handler http.Handler, methods ...string) 
 
 func newRoute(method, path string) *route {
 	r := &route{method: method}
-	if path != "" {
-		r.segments = strings.Split(path, "/")
-		r.len = len(r.segments)
+	r.segments = strings.Split(path, "/")
+	r.len = len(r.segments)
 
-		for i, s := range r.segments {
-			if s[0] == ':' { // dynamic segment
-				if r.params == nil {
-					r.params = make(map[int]string)
-				}
-				r.params[i] = s[1:]
+	for i, s := range r.segments {
+		if len(s) > 0 && s[0] == ':' { // dynamic segment
+			if r.params == nil {
+				r.params = make(map[int]string)
 			}
+			r.params[i] = s[1:]
 		}
 	}
 	return r
@@ -250,6 +273,9 @@ func (m *Muxer) HandleFunc(pattern string, handler func(http.ResponseWriter, *ht
 // handler will be an internally-generated handler
 // that redirects to the canonical path.
 func (m *Muxer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if r.RequestURI == "*" {
 		if r.ProtoAtLeast(1, 1) {
 			w.Header().Set("Connection", "close")
@@ -267,17 +293,30 @@ func (m *Muxer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h, params := m.handler(r.Method, r.Host, r.URL.Path)
-
-	if len(params) > 0 {
-		ctx := r.Context()
-		for key, value := range params {
-			ctx = context.WithValue(ctx, CtxKey(key), value)
+	h, args, methodMismatch := m.match(r.Method, r.Host, r.URL.Path)
+	if h != nil {
+		if len(args) > 0 {
+			ctx := r.Context()
+			for key, value := range args {
+				ctx = context.WithValue(ctx, CtxKey(key), value)
+			}
+			r = r.WithContext(ctx)
 		}
-		r = r.WithContext(ctx)
+		h.ServeHTTP(w, r)
+		return
 	}
 
-	h.ServeHTTP(w, r)
+	if m.notFoundHandler != nil {
+		m.notFoundHandler(w, r, methodMismatch)
+		return
+	}
+
+	status := http.StatusNotFound
+	if methodMismatch {
+		status = http.StatusMethodNotAllowed
+	}
+	text := http.StatusText(status)
+	http.Error(w, text, status)
 }
 
 // Return the canonical path for p, eliminating . and .. elements.
@@ -297,27 +336,12 @@ func cleanPath(p string) string {
 	return np
 }
 
-// handler is the main implementation of Handler.
-// The path is known to be in canonical form, except for CONNECT methods.
-func (m *Muxer) handler(method, host, path string) (h http.Handler, params params) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	if h == nil {
-		h, params = m.match(method, host, path)
-	}
-	if h == nil {
-		h, params = http.NotFoundHandler(), nil
-	}
-	return
-}
-
-func (m *Muxer) match(method, _, path string) (http.Handler, params) {
+func (m *Muxer) match(method, _, path string) (h http.Handler, args args, methodMismatch bool) {
 	endsInSlash := path[len(path)-1] == '/'
 	segments := strings.Split(strings.Trim(path, "/"), "/")
 	slen := len(segments)
 
-	routes := m.possibleRoutes(method, slen, endsInSlash)
+	routes := m.possibleRoutes(slen, endsInSlash)
 
 	var candidates []*route
 LOOP:
@@ -336,25 +360,27 @@ LOOP:
 		routes = candidates
 	}
 
-	if len(candidates) > 0 {
-		c := candidates[0]
-		params := c.paramsMap(segments)
-		if c.len < slen || endsInSlash {
-			return c.slashHandler, params
+	candLen := len(candidates)
+	if candLen > 0 {
+		for _, c := range candidates {
+			if c.methodSupported(method) {
+				args = c.argsMap(segments)
+				if c.len < slen || endsInSlash {
+					h = c.slashHandler
+				} else {
+					h = c.nonSlashHandler
+				}
+				return
+			}
 		}
-		return c.nonSlashHandler, params
+		methodMismatch = true
 	}
-
-	return nil, nil
+	return
 }
 
-func (m *Muxer) possibleRoutes(method string, slen int, endsInSlash bool) []*route {
+func (m *Muxer) possibleRoutes(slen int, endsInSlash bool) []*route {
 	routes := make([]*route, 0, len(m.routes))
 	for _, r := range m.routes {
-		if !r.methodSupported(method) {
-			continue
-		}
-
 		if r.len == slen && ((endsInSlash && r.slashHandler != nil) || (!endsInSlash && r.nonSlashHandler != nil)) {
 			routes = append(routes, r)
 		} else if r.len < slen && r.slashHandler != nil {
@@ -362,6 +388,22 @@ func (m *Muxer) possibleRoutes(method string, slen int, endsInSlash bool) []*rou
 		}
 	}
 	return routes
+}
+
+// NotFound registers a handler that will be called when
+// the Muxer didn't find a suitable handler for the request.
+// The handler can be used to reply to the request with a custom error.
+//
+// The handler will be passed the http.ResponseWriter, the original
+// http.Request and a bool argument, which indicates whether
+// the request path matches a pattern but the request method
+// does not match the method associated with the pattern.
+// It can be used to distinguish between 404 Not Found and
+// 405 Method Not Allowed errors.
+func (m *Muxer) NotFound(h func(w http.ResponseWriter, r *http.Request, methodMismatch bool)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.notFoundHandler = h
 }
 
 // CtxKey is the type of the context keys at which named parameter
