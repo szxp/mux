@@ -1,3 +1,4 @@
+// Package mux provides a lightweight HTTP request router (multiplexer).
 package mux
 
 import (
