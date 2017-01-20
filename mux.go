@@ -11,14 +11,13 @@ import (
 )
 
 // Muxer represents an HTTP request multiplexer.
-// A Muxer is safe for concurrent use by multiple goroutines.
 type Muxer struct {
 	mu         sync.RWMutex
 	registered map[string]*route
 	routes     []*route
 }
 
-// NewMuxer creates and returns a new Muxer.
+// NewMuxer returns a new Muxer.
 // The returned Muxer is safe for concurrent use by multiple goroutines.
 func NewMuxer() *Muxer {
 	return &Muxer{
@@ -115,19 +114,19 @@ func (a byPriority) Less(i, j int) bool { return a[i].priority() > a[j].priority
 //
 // Static and dynamic patterns are supported.
 // Static pattern examples:
-//   PUT,PATCH /product
-//   GET /
-//   /products/
+//   /
+//   /product
+//   /users/new/
 //
 // Dynamic patterns can contain paramterer names after the colon character.
 // Dynamic pattern examples:
-//   GET,POST /blog/:year/:month
+//   /blog/:year/:month
 //   /users/:username/profile
 //
 // Parameter values for a dynamic pattern will be available
 // in the request's context (http.Request.Context()) associated with
-// the parameter name. Use the context's Value() method to retrieve the values.
-func (m *Muxer) Handle(pattern string, handler http.Handler) {
+// the parameter name. Use the request context's Value() method to retrieve the values.
+func (m *Muxer) Handle(pattern string, handler http.Handler, methods ...string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -135,10 +134,13 @@ func (m *Muxer) Handle(pattern string, handler http.Handler) {
 		panic("invalid pattern " + pattern)
 	}
 
-	methods, host, path := split(pattern)
+	host, path := split(pattern)
 	endsInSlash := path[len(path)-1] == '/'
 	path = strings.Trim(path, "/")
 
+	if len(methods) == 0 {
+		methods = []string{""}
+	}
 	for _, method := range methods {
 		key := method + host + path
 		r := m.registered[key]
@@ -175,35 +177,27 @@ func newRoute(method, path string) *route {
 	return r
 }
 
-// split splits the pattern, separating it into methods, host and path.
-func split(pattern string) (methods []string, host, path string) {
+// split splits the pattern, separating it into host and path.
+func split(pattern string) (host, path string) {
 	pStart := strings.Index(pattern, "/")
 	if pStart == -1 {
 		panic("path must begin with slash")
 	}
 
 	path = pattern[pStart:]
-	prefix := pattern[:pStart]
-	mEnd := strings.Index(prefix, " ")
-	if mEnd > -1 {
-		methods = strings.Split(prefix[:mEnd], ",")
-	}
-	if len(methods) == 0 {
-		methods = []string{""}
-	}
 
 	// the domain part of the url is case insensitive
-	host = strings.ToLower(prefix[mEnd+1:])
+	host = strings.ToLower(pattern[:pStart])
 	return
 }
 
 // HandleFunc registers the handler function for the given pattern.
 // See the Handle method for details on how to register a pattern.
-func (m *Muxer) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+func (m *Muxer) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request), methods ...string) {
 	if handler == nil {
 		panic("nil handler")
 	}
-	m.Handle(pattern, http.HandlerFunc(handler))
+	m.Handle(pattern, http.HandlerFunc(handler), methods...)
 }
 
 // ServeHTTP dispatches the request to the handler whose

@@ -21,7 +21,7 @@ func TestEmpty(t *testing.T) {
 func TestCatchAll(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
-	register(m, "/", "Catch all", nil)
+	register(m, "/", nil, "Catch all", nil)
 	assertOK(t, m, "GET", "/", "Catch all")
 	assertOK(t, m, "GET", "/not-registered", "Catch all")
 	assertOK(t, m, "GET", "/a/b", "Catch all")
@@ -30,7 +30,7 @@ func TestCatchAll(t *testing.T) {
 func TestWithoutSlash(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
-	register(m, "/help", "Help without slash", nil)
+	register(m, "/help", nil, "Help without slash", nil)
 	assertOK(t, m, "GET", "/help", "Help without slash")
 	assertNotFound(t, m, "GET", "/helpMe")
 	assertNotFound(t, m, "GET", "/he")
@@ -40,7 +40,7 @@ func TestWithoutSlash(t *testing.T) {
 func TestWithSlash(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
-	register(m, "/login/", "Login with slash", nil)
+	register(m, "/login/", nil, "Login with slash", nil)
 	assertOK(t, m, "GET", "/login/", "Login with slash")
 	assertNotFound(t, m, "GET", "/log")
 }
@@ -48,7 +48,7 @@ func TestWithSlash(t *testing.T) {
 func TestLongPattern(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
-	register(m, "/category/first", "First category", nil)
+	register(m, "/category/first", nil, "First category", nil)
 	assertNotFound(t, m, "GET", "/cat")
 	assertNotFound(t, m, "GET", "/category")
 	assertNotFound(t, m, "GET", "/category/")
@@ -62,8 +62,8 @@ func TestLongPattern(t *testing.T) {
 func TestShorterCatchAll(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
-	register(m, "/users/", "Users", nil)
-	register(m, "/users/admin", "Admin", nil)
+	register(m, "/users/", nil, "Users", nil)
+	register(m, "/users/admin", nil, "Admin", nil)
 	assertOK(t, m, "GET", "/users/", "Users")
 	assertOK(t, m, "GET", "/users/admin", "Admin")
 	assertOK(t, m, "GET", "/users/administrator", "Users")
@@ -76,9 +76,9 @@ func TestDynamicPattern(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
 	pr := newParamsRecorder(params{"deckId": "123", "cardId": "99"})
-	register(m, "/", "Home", nil)
-	register(m, "/new", "New Deck", nil)
-	register(m, "/:deckId/study/:cardId", "Deck", pr)
+	register(m, "/", nil, "Home", nil)
+	register(m, "/new", nil, "New Deck", nil)
+	register(m, "/:deckId/study/:cardId", nil, "Deck", pr)
 	assertOK(t, m, "GET", "/123/study/99", "Deck")
 	pr.assertEquals(t)
 }
@@ -86,16 +86,16 @@ func TestDynamicPattern(t *testing.T) {
 func TestRegisterPatternTwice(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
-	register(m, "/new", "Home1", nil)
-	register(m, "/new", "Home2", nil)
+	register(m, "/new", nil, "Home1", nil)
+	register(m, "/new", nil, "Home2", nil)
 	assertOK(t, m, "GET", "/new", "Home2")
 }
 
 func TestRemoveHandler(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
-	register(m, "/", "Home", nil)
-	register(m, "/new", "New Deck", nil)
+	register(m, "/", nil, "Home", nil)
+	register(m, "/new", nil, "New Deck", nil)
 	m.Handle("/new", nil)
 	assertOK(t, m, "GET", "/new", "Home")
 }
@@ -103,10 +103,10 @@ func TestRemoveHandler(t *testing.T) {
 func TestMethods(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()
-	register(m, "GET /gift", "Receiving a gift", nil)
-	register(m, "POST /gift", "Giving a gift", nil)
-	register(m, "GET,POST /bicycle", "Bicycle", nil)
-	register(m, "PUT,PATCH /car", "Car", nil)
+	register(m, "/gift", []string{"GET"}, "Receiving a gift", nil)
+	register(m, "/gift", []string{"POST"}, "Giving a gift", nil)
+	register(m, "/bicycle", []string{"GET", "POST"}, "Bicycle", nil)
+	register(m, "/car", []string{"PUT", "PATCH"}, "Car", nil)
 
 	assertOK(t, m, "GET", "/gift", "Receiving a gift")
 	assertOK(t, m, "POST", "/gift", "Giving a gift")
@@ -122,8 +122,8 @@ func TestMethods(t *testing.T) {
 	assertNotFound(t, m, "DELETE", "/car")
 }
 
-func register(m *Muxer, pattern string, body string, cr *paramsRecorder) {
-	m.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+func register(m *Muxer, pattern string, methods []string, body string, cr *paramsRecorder) {
+	handlerFunc := func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, body)
 
 		if cr != nil {
@@ -132,7 +132,8 @@ func register(m *Muxer, pattern string, body string, cr *paramsRecorder) {
 				cr.actual[key] = v.(string)
 			}
 		}
-	})
+	}
+	m.HandleFunc(pattern, handlerFunc, methods...)
 }
 
 func assertNotFound(t *testing.T, m *Muxer, method, path string) {
