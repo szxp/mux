@@ -185,8 +185,10 @@ func (a byPriority) Less(i, j int) bool { return a[i].priority() > a[j].priority
 // The muxer will choose the most specific pattern that matches the request.
 // A pattern with longer static prefix is more specific
 // than a pattern with a shorter static prefix.
+//
+// If the request path is /a/e then:
 //   /a      vs /:b       => /a       wins
-//   /:x     vs /:x/p     => /:x/p    wins
+//   /:x     vs /:x/e     => /:x/e    wins
 //   /a/:b/c vs /:d/e/:f  => /a/:b/c  wins
 //
 // The slash pattern (/) does NOT act as a catch all pattern.
