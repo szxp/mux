@@ -11,7 +11,7 @@ A lightweight HTTP request router (multiplexer). [Documentation is available at 
  * Dynamic parameter values are available in the request's context.
  * The router implements the http.Handler interface.
  * Safe for concurrent use by multiple goroutines.
- * Only standard library dependecies.
+ * Only standard library dependencies.
  * Go 1.7+ supported.
 
 ## Working exmaple
