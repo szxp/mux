@@ -187,3 +187,33 @@ func (pr *paramsRecorder) assertEquals(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkDynamic(b *testing.B) {
+	handlerFunc := func(w http.ResponseWriter, r *http.Request) {}
+	muxer := NewMuxer()
+	muxer.HandleFunc("/a/:b/c/:d/e/:f", handlerFunc, "GET", "POST")
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/a/b/c/d/e/f", nil)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		muxer.ServeHTTP(w, r)
+	}
+}
+
+func BenchmarkStatic(b *testing.B) {
+	handlerFunc := func(w http.ResponseWriter, r *http.Request) {}
+	muxer := NewMuxer()
+	muxer.HandleFunc("/a/b/c/d/e/f", handlerFunc, "GET", "POST")
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/a/b/c/d/e/f", nil)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		muxer.ServeHTTP(w, r)
+	}
+}

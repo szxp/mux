@@ -17,18 +17,18 @@ func main() {
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	body := []byte(`
-		<h1>Home</h1>
-		<p>
-			<a href="/users/admin">Admin profile page</a> <br/>
-			<a href="/login">Login page</a>
-		</p>
-		<form action="/" method="POST">
-			<button type="submit">Post to Home URL</button>
-		</form>
-		<form action="/nonexisting" method="POST">
-			<button type="submit">Post to non existing URL</button>
-		</form>
-	`)
+        <h1>Home</h1>
+        <p>
+            <a href="/users/admin">Admin profile page</a> <br/>
+            <a href="/login">Login page</a>
+        </p>
+        <form action="/" method="POST">
+            <button type="submit">Post to Home URL</button>
+        </form>
+        <form action="/nonexisting" method="POST">
+            <button type="submit">Post to non existing URL</button>
+        </form>
+    `)
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 	w.Header().Add("Content-Length", fmt.Sprintf("%d", len(body)))
 	w.Write(body)

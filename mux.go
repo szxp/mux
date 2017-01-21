@@ -194,6 +194,11 @@ func (a byPriority) Less(i, j int) bool { return a[i].priority() > a[j].priority
 // If HTTP methods are given then only requests with those methods
 // will be dispatched to the handler whose pattern matches the request path. For example:
 //   muxer.HandleFunc("/login", loginHandler, "GET", "POST")
+//
+// If the Muxer didn't find a suitable handler for the request
+// and "not found" handler is not set the Muxer will reply to the request
+// with "404 Not found" or "405 Method not allowed" status code.
+// Use the NotFound method to set a custom error handler.
 func (m *Muxer) Handle(pattern string, handler http.Handler, methods ...string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -260,10 +265,11 @@ func split(pattern string) (host, path string) {
 // HandleFunc registers the handler function for the given pattern.
 // See the Handle method for details on how to register a pattern.
 func (m *Muxer) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request), methods ...string) {
-	if handler == nil {
-		panic("nil handler")
+	if handler != nil {
+		m.Handle(pattern, http.HandlerFunc(handler), methods...)
+		return
 	}
-	m.Handle(pattern, http.HandlerFunc(handler), methods...)
+	m.Handle(pattern, nil, methods...)
 }
 
 // ServeHTTP dispatches the request to the handler whose
@@ -341,29 +347,27 @@ func (m *Muxer) match(method, _, path string) (h http.Handler, args args, method
 	segments := strings.Split(strings.Trim(path, "/"), "/")
 	slen := len(segments)
 
-	routes := m.possibleRoutes(slen, endsInSlash)
+	candidates := m.possibleRoutes(slen, endsInSlash)
+	candLen := len(candidates)
 
-	var candidates []*route
 LOOP:
 	for i := slen - 1; i >= 0; i-- {
 		s := segments[i]
 
-		candidates = make([]*route, 0, len(routes))
-		for _, r := range routes {
-			if !r.notMatch(s, i) {
-				candidates = append(candidates, r)
+		for k, r := range candidates {
+			if r != nil && r.notMatch(s, i) {
+				candidates[k] = nil
+				candLen -= 1
 			}
 		}
-		if len(candidates) == 0 {
+		if candLen == 0 {
 			break LOOP
 		}
-		routes = candidates
 	}
 
-	candLen := len(candidates)
 	if candLen > 0 {
 		for _, c := range candidates {
-			if c.methodSupported(method) {
+			if c != nil && c.methodSupported(method) {
 				args = c.argsMap(segments)
 				if c.len < slen || endsInSlash {
 					h = c.slashHandler
