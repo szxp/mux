@@ -12,7 +12,7 @@ skip_tags: true
 
 environment:
    GOPATH: C:\gopath
-   GOVERSION: 1.7.4
+   GOVERSION: 1.7.5
    MINGW_DIR: C:\mingw64
    MINGW_ARCHIVE: x86_64-6.1.0-release-win32-seh-rt_v5-rev1.7z
 
