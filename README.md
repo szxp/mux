@@ -7,7 +7,7 @@
 A lightweight HTTP request router (multiplexer). [Documentation is available at GoDoc](https://godoc.org/github.com/szxp/mux).
 
 ## Releases
-Master branch is considered stable. 
+Master branch is the stable production-ready branch. 
 
 ## Features
  * Static and dynamic patterns supported. Dynamic parameter values are available in the [request's context](https://godoc.org/net/http#Request.Context).
