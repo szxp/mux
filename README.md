@@ -16,14 +16,16 @@ Master branch is considered stable.
  * Go 1.7+ supported.
  
 ## Benchmarks
-Testing the examples in the benchmark directory with `wrk -c100 -d10 -t10 "http://localhost:8080/some/page/123"` 
-at least three times each. The result is:
+Testing the examples in the benchmark directory running the `bench.sh` script at least
+three times for each muxer. The result is:
 
 ```
-httprouter   27229 Requests/sec
-bone         25679 Requests/sec
-mux          25439 Requests/sec
-gorrila/mux  24010 Requests/sec
+              dynamic route        static route
+	      /some/page/:id       /other/page/path
+httprouter    27229 Requests/sec   27780 Requests/sec
+bone          25679 Requests/sec   27357 Requests/sec
+mux           25439 Requests/sec   26792 Requests/sec
+gorrila/mux   24010 Requests/sec   25091 Requests/sec
 ```
 The test machine was a Dell Latitude D630 laptop with Intel(R) Core2 Duo T7250 2.00 GHz processor.
 
