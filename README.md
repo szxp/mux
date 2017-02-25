@@ -21,7 +21,7 @@ at least three times. The result is:
 ```
 25047 Requests/sec
 ```
-The test machine was a Dell Latitude D630 laptop with Intel(R) Core2 Duo T725 2.00 GHz processor.
+The test machine was a Dell Latitude D630 laptop with Intel(R) Core2 Duo T7250 2.00 GHz processor.
 
 ## Example
 ```go
