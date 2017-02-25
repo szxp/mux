@@ -16,11 +16,14 @@ Master branch is considered stable.
  * Go 1.7+ supported.
  
 ## Benchmarks
-Testing the example code below with `wrk -c100 -d10 -t10 "http://localhost:8080/users/admin"` 
-at least three times. The result is:
+Testing the examples in the benchmark directory with `wrk -c100 -d10 -t10 "http://localhost:8080/some/page/123"` 
+at least three times each. The result is:
 
 ```
-25047 Requests/sec
+httprouter   27229 Requests/sec
+bone         25679 Requests/sec
+mux          25439 Requests/sec
+gorrila/mux  24010 Requests/sec
 ```
 The test machine was a Dell Latitude D630 laptop with Intel(R) Core2 Duo T7250 2.00 GHz processor.
 
