@@ -20,6 +20,7 @@ Testing with `wrk -c100 -d10 -t10 "http://localhost:8080/users/admin"` at least 
 ```
 25047 Requests/sec
 ```
+The test machine was a Dell Latitude D630 laptop with Intel(R) Core2 Duo T725 2.00 GHz processor.
 
 ## Example
 ```go
