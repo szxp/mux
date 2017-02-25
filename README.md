@@ -20,14 +20,23 @@ Testing the examples in the benchmark directory running the `bench.sh` script at
 three times for each muxer. The result is:
 
 ```
-              dynamic route        static route
-              /some/page/:id       /other/page/path
+              dynamic route (/some/page/:id)
 
-httprouter    27229 Requests/sec   27780 Requests/sec
-bone          25679 Requests/sec   27357 Requests/sec
-mux           25439 Requests/sec   26792 Requests/sec
-gorrila/mux   24010 Requests/sec   25091 Requests/sec
+httprouter    27229 Requests/sec  (+13.40 %)
+bone          25679 Requests/sec  ( +6.95 %)
+mux           25439 Requests/sec  ( +5.95 %)
+gorrila/mux   24010 Requests/sec  (     0 %)
 ```
+
+```
+              static route (/other/page/path)
+
+httprouter    27780 Requests/sec  (+10.71 %)
+bone          27357 Requests/sec  ( +9,03 %)
+mux           26792 Requests/sec  ( +6.77 %)
+gorrila/mux   25091 Requests/sec  (     0 %)
+```
+
 The test machine was a Dell Latitude D630 laptop with Intel(R) Core2 Duo T7250 2.00 GHz processor.
 
 ## Example
