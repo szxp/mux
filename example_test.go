@@ -1,4 +1,8 @@
-package main
+// Copyright 2017 Péter Szakszon. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package mux_test
 
 import (
 	"fmt"
@@ -6,7 +10,7 @@ import (
 	"net/http"
 )
 
-func main() {
+func Example() {
 	muxer := mux.NewMuxer()
 	muxer.HandleFunc("/", indexHandler, "GET")
 	muxer.HandleFunc("/login", loginHandler, "POST")

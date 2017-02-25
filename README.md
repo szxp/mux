@@ -7,18 +7,14 @@
 A lightweight HTTP request router (multiplexer). [Documentation is available at GoDoc](https://godoc.org/github.com/szxp/mux).
 
 ## Releases
-Master branch is still unstable, but it will be considered stable and production ready after the 1.0 release. Releases after the 1.0 version will always be backward compatible. 
-
+Master branch is considered stable. 
 
 ## Features
- * Static and dynamic patterns supported.
- * Dynamic parameter values are available in the request's context.
- * The router implements the http.Handler interface.
- * Safe for concurrent use by multiple goroutines.
+ * Static and dynamic patterns supported. Dynamic parameter values are available in the request's context.
  * Only standard library dependencies.
  * Go 1.7+ supported.
 
-## Working exmaple
+## Exmaple
 ```go
 package main
 
