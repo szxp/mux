@@ -11,6 +11,7 @@ Master branch is considered stable.
 
 ## Features
  * Static and dynamic patterns supported. Dynamic parameter values are available in the request's context.
+ * Compatible with the built-in [http.Handler](https://godoc.org/net/http#Handler)
  * Only standard library dependencies.
  * Go 1.7+ supported.
  
