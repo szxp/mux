@@ -21,7 +21,8 @@ three times for each muxer. The result is:
 
 ```
               dynamic route        static route
-	      /some/page/:id       /other/page/path
+              /some/page/:id       /other/page/path
+
 httprouter    27229 Requests/sec   27780 Requests/sec
 bone          25679 Requests/sec   27357 Requests/sec
 mux           25439 Requests/sec   26792 Requests/sec
