@@ -14,7 +14,7 @@ Master branch is considered stable.
  * Only standard library dependencies.
  * Go 1.7+ supported.
 
-## Exmaple
+## Example
 ```go
 package main
 
