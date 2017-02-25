@@ -13,6 +13,13 @@ Master branch is considered stable.
  * Static and dynamic patterns supported. Dynamic parameter values are available in the request's context.
  * Only standard library dependencies.
  * Go 1.7+ supported.
+ 
+## Benchmarks
+Testing with `wrk -c100 -d10 -t10 "http://localhost:8080/users/admin"` at least three times. The result is:
+
+```
+25047 Requests/sec
+```
 
 ## Example
 ```go
