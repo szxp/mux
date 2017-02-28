@@ -78,24 +78,6 @@ func TestDynamicPattern(t *testing.T) {
 	pr.assertEquals(t)
 }
 
-func TestRegisterPatternTwice(t *testing.T) {
-	t.Parallel()
-	m := NewMuxer()
-	register(m, "/new", nil, "Home1", nil)
-	register(m, "/new", nil, "Home2", nil)
-	assertOK(t, m, "GET", "/new", "Home2")
-}
-
-func TestRemoveHandler(t *testing.T) {
-	t.Parallel()
-	m := NewMuxer()
-	register(m, "/", nil, "Home", nil)
-	register(m, "/new", nil, "New Deck", nil)
-	assertOK(t, m, "GET", "/new", "New Deck")
-	m.Handle("/new", nil)
-	assertNotFound(t, m, "GET", "/new", 404)
-}
-
 func TestHTTPMethods(t *testing.T) {
 	t.Parallel()
 	m := NewMuxer()

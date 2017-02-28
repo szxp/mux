@@ -7,6 +7,7 @@ package mux
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"path"
 	"sort"
@@ -170,17 +171,19 @@ func (m *Muxer) Handle(pattern string, handler http.Handler, methods ...string) 
 	for _, method := range methods {
 		key := method + host + path
 		r := m.registered[key]
-		if r == nil {
-			r = newRoute(method, path)
-			m.routes = append(m.routes, r)
-			m.registered[key] = r
+		if r != nil {
+			panic(fmt.Sprintf("already registered: %v %v",
+				methods, pattern))
 		}
-
+		r = newRoute(method, path)
 		if endsInSlash {
 			r.slashHandler = handler
 		} else {
 			r.nonSlashHandler = handler
 		}
+		m.routes = append(m.routes, r)
+		m.registered[key] = r
+
 	}
 	sort.Sort(byPriority(m.routes))
 }
